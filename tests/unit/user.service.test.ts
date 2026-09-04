@@ -1,14 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { UserRepository } from '../../src/repositories/user.repository.js';
-import { UserService } from '../../src/services/user.service.js';
+import type { UserRepository } from '../../src/repositories/user.repository';
+import { UserService } from '../../src/services/user.service';
 
 describe('UserService', () => {
   let userService: UserService;
   let userRepository: UserRepository;
 
   beforeEach(() => {
-    userRepository = new UserRepository();
+    userRepository = {
+      findById: vi.fn(),
+      findAll: vi.fn(),
+      findByEmail: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as UserRepository;
+
     userService = new UserService(userRepository);
   });
 
@@ -17,14 +25,35 @@ describe('UserService', () => {
       const userData = {
         email: 'test@example.com',
         password: 'password123',
-        name: 'Test User',
+        firstName: 'Test',
+        lastName: 'User',
+        phone: '+1234567890',
       };
+
+      const createdAt = new Date();
+      const updatedAt = new Date();
+
+      vi.mocked(userRepository.findByEmail).mockResolvedValue(null);
+      vi.mocked(userRepository.create).mockResolvedValue({
+        id: 'user-1',
+        email: userData.email,
+        password: 'hashed-password',
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: 'USER',
+        avatarUrl: null,
+        createdAt,
+        updatedAt,
+        deletedAt: null,
+      });
 
       const user = await userService.create(userData);
 
       expect(user).toHaveProperty('id');
       expect(user.email).toBe(userData.email);
-      expect(user.name).toBe(userData.name);
+      expect(user.firstName).toBe(userData.firstName);
+      expect(user.lastName).toBe(userData.lastName);
       expect(user).not.toHaveProperty('password');
     });
 
@@ -32,12 +61,57 @@ describe('UserService', () => {
       const userData = {
         email: 'test@example.com',
         password: 'password123',
-        name: 'Test User',
+        firstName: 'Test',
+        lastName: 'User',
+        phone: '+1234567890',
       };
 
-      await userService.create(userData);
+      vi.mocked(userRepository.findByEmail).mockResolvedValue({
+        id: 'user-1',
+        email: userData.email,
+        password: 'hashed-password',
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        role: 'USER',
+        avatarUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      });
 
       await expect(userService.create(userData)).rejects.toThrow('User already exists');
+    });
+  });
+
+  describe('findById', () => {
+    it('should return user without password', async () => {
+      const user = {
+        id: 'user-1',
+        email: 'test@example.com',
+        password: 'hashed-password',
+        firstName: 'Test',
+        lastName: 'User',
+        phone: '+1234567890',
+        role: 'USER' as const,
+        avatarUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      };
+
+      vi.mocked(userRepository.findById).mockResolvedValue(user);
+
+      const result = await userService.findById('user-1');
+
+      expect(result.id).toBe(user.id);
+      expect(result).not.toHaveProperty('password');
+    });
+
+    it('should throw error if user not found', async () => {
+      vi.mocked(userRepository.findById).mockResolvedValue(null);
+
+      await expect(userService.findById('user-1')).rejects.toThrow('User not found');
     });
   });
 });

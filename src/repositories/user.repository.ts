@@ -1,60 +1,63 @@
-import { BaseRepository } from './base.repository.js';
+import type { Prisma, User } from '@prisma/client';
 
-export interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: 'user' | 'admin';
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { prisma } from '../config/database';
 
-// In-memory storage (replace with database)
-const users: Map<string, User> = new Map();
+import { BaseRepository } from './base.repository';
+
+export type { User } from '@prisma/client';
+
+export type SafeUser = Omit<User, 'password'>;
 
 export class UserRepository extends BaseRepository<User> {
   async findById(id: string): Promise<User | null> {
-    return users.get(id) || null;
+    return prisma.user.findUnique({
+      where: { id },
+    });
   }
 
   async findAll(): Promise<User[]> {
-    return Array.from(users.values());
+    return prisma.user.findMany();
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = Array.from(users.values()).find(u => u.email === email);
-    return user || null;
+    return prisma.user.findUnique({
+      where: { email },
+    });
   }
 
   async create(data: Partial<User>): Promise<User> {
-    const user = {
-      id: crypto.randomUUID(),
+    const createData: Prisma.UserCreateInput = {
       email: data.email!,
       password: data.password!,
-      name: data.name!,
-      role: data.role || 'user',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as User;
-    users.set(user.id, user);
-    return user;
+      firstName: data.firstName!,
+      lastName: data.lastName!,
+      phone: data.phone!,
+    };
+
+    if (data.role !== undefined) {
+      createData.role = data.role;
+    }
+
+    if (data.avatarUrl !== undefined) {
+      createData.avatarUrl = data.avatarUrl;
+    }
+
+    return prisma.user.create({ data: createData });
   }
 
   async update(id: string, data: Partial<User>): Promise<User | null> {
-    const existing = users.get(id);
-    if (!existing) return null;
-
-    const updated = {
-      ...existing,
-      ...data,
-      updatedAt: new Date(),
-    };
-    users.set(id, updated);
-    return updated;
+    return prisma.user.update({
+      where: { id },
+      data,
+    });
   }
 
   async delete(id: string): Promise<boolean> {
-    return users.delete(id);
+    try {
+      await prisma.user.delete({ where: { id } });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

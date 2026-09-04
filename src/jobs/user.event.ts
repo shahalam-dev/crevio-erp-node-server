@@ -1,4 +1,4 @@
-import { BaseEventEmitter } from './base.event.js';
+import { BaseEventEmitter } from './base.event';
 
 interface UserCreatedData {
   userId: string;
