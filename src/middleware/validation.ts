@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodObject, ZodError } from 'zod';
 
-import { CustomError } from '../exceptions/CustomError.js';
+import { CustomError } from '../exceptions/CustomError';
 
 export const validate = (schema: ZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {

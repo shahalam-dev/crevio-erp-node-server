@@ -1,4 +1,4 @@
-import { DEFAULT_PAGINATION } from '../constants/index.js';
+import { DEFAULT_PAGINATION } from '../constants/index';
 
 export function generateId(): string {
   return crypto.randomUUID();

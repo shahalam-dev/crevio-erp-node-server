@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
-import authRoutes from './auth.routes.js';
-import userRoutes from './user.routes.js';
+import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
 
 const router: ReturnType<typeof Router> = Router();
 

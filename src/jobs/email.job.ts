@@ -1,4 +1,4 @@
-import { BaseJob } from './base.job.js';
+import { BaseJob } from './base.job';
 
 interface EmailJobData {
   to: string;

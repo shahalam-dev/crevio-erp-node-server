@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 
 import { env } from '../config/env.js';
+import { CustomError } from '../exceptions/CustomError.js';
+import { sendError } from '../utils/response.js';
 
 // Simple in-memory rate limiter (use Redis for production)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -8,7 +10,7 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS = 100;
 
-export const rateLimiter = (req: Request, res: Response, next: NextFunction) => {
+export const rateLimiter = (req: Request, res: Response, next: NextFunction): void => {
   if (env.NODE_ENV === 'test') return next();
 
   const ip = req.ip || req.socket.remoteAddress || 'unknown';
@@ -27,10 +29,8 @@ export const rateLimiter = (req: Request, res: Response, next: NextFunction) => 
   }
 
   if (record.count >= MAX_REQUESTS) {
-    return res.status(429).json({
-      success: false,
-      message: 'Too many requests, please try again later.',
-    });
+    sendError(req, res, new CustomError('Too many requests, please try again later.', 429));
+    return;
   }
 
   record.count++;

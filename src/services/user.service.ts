@@ -1,82 +1,74 @@
-// import { BaseService } from './base.service.js';
+import type { User } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
-// export class UserService extends BaseService<User> {
-//   constructor(private userRepository: UserRepository) {
-//     super();
-//   }
+import { CustomError } from '../exceptions/CustomError';
+import type { SafeUser, UserRepository } from '../repositories/user.repository';
 
-//   // async findById(id: string): Promise<User | null> {
-//   //   const user = await this.userRepository.findById(id);
-//   //   if (!user) {
-//   //     throw new CustomError('User not found', 404);
-//   //   }
-//   //   return user;
-//   // }
+const SALT_ROUNDS = 12;
 
-//   // async findAll(): Promise<User[]> {
-//   //   return this.userRepository.findAll();
-//   // }
+const toSafeUser = (user: User): SafeUser => {
+  const { password: _password, ...safeUser } = user;
+  return safeUser;
+};
 
-//   // async findByEmail(email: string): Promise<User | null> {
-//   //   return this.userRepository.findByEmail(email);
-//   // }
+export interface CreateUserInput {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  role?: User['role'];
+}
 
-//   // async create(data: { email: string; password: string; name: string; role?: string }): Promise<User> {
-//   //   // Check if user exists
-//   //   const existingUser = await this.userRepository.findByEmail(data.email);
-//   //   if (existingUser) {
-//   //     throw new CustomError('User already exists', 409);
-//   //   }
+export class UserService {
+  constructor(private userRepository: UserRepository) {}
 
-//   //   // Hash password
-//   //   const hashedPassword = await bcrypt.hash(data.password, 10);
+  async findById(id: string): Promise<SafeUser> {
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new CustomError('User not found', 404);
+    }
+    return toSafeUser(user);
+  }
 
-//   //   const user = await this.userRepository.create({
-//   //     ...data,
-//   //     password: hashedPassword,
-//   //   });
+  async findByEmail(email: string): Promise<SafeUser | null> {
+    const user = await this.userRepository.findByEmail(email);
+    return user ? toSafeUser(user) : null;
+  }
 
-//   //   // Remove password from returned object
-//   //   const { password, ...userWithoutPassword } = user;
-//   //   return userWithoutPassword as User;
-//   // }
+  async findAll(): Promise<SafeUser[]> {
+    const users = await this.userRepository.findAll();
+    return users.map(toSafeUser);
+  }
 
-//   // async update(id: string, data: Partial<User>): Promise<User | null> {
-//   //   const user = await this.userRepository.update(id, data);
-//   //   if (!user) {
-//   //     throw new CustomError('User not found', 404);
-//   //   }
+  async create(data: CreateUserInput): Promise<SafeUser> {
+    const existingUser = await this.userRepository.findByEmail(data.email);
+    if (existingUser) {
+      throw new CustomError('User already exists', 409);
+    }
 
-//   //   const { password, ...userWithoutPassword } = user;
-//   //   return userWithoutPassword as User;
-//   // }
+    const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
 
-//   // async delete(id: string): Promise<boolean> {
-//   //   const deleted = await this.userRepository.delete(id);
-//   //   if (!deleted) {
-//   //     throw new CustomError('User not found', 404);
-//   //   }
-//   //   return true;
-//   // }
+    const user = await this.userRepository.create({
+      ...data,
+      password: hashedPassword,
+    });
 
-//   // async login(email: string, password: string): Promise<{ user: Omit<User, 'password'>; token: string }> {
-//   //   const user = await this.userRepository.findByEmail(email);
-//   //   if (!user) {
-//   //     throw new CustomError('Invalid credentials', 401);
-//   //   }
+    return toSafeUser(user);
+  }
 
-//   //   const isPasswordValid = await bcrypt.compare(password, user.password);
-//   //   if (!isPasswordValid) {
-//   //     throw new CustomError('Invalid credentials', 401);
-//   //   }
+  async update(id: string, data: Partial<User>): Promise<SafeUser> {
+    const user = await this.userRepository.update(id, data);
+    if (!user) {
+      throw new CustomError('User not found', 404);
+    }
+    return toSafeUser(user);
+  }
 
-//   //   const token = jwt.sign(
-//   //     { id: user.id, email: user.email, role: user.role },
-//   //     env.JWT_SECRET,
-//   //     { expiresIn: env.JWT_EXPIRES_IN }
-//   //   );
-
-//   //   const { password: _, ...userWithoutPassword } = user;
-//   //   return { user: userWithoutPassword, token };
-//   // }
-// }
+  async delete(id: string): Promise<void> {
+    const deleted = await this.userRepository.delete(id);
+    if (!deleted) {
+      throw new CustomError('User not found', 404);
+    }
+  }
+}

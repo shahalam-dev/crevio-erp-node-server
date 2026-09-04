@@ -1,3 +1,5 @@
+import type { Role } from '@prisma/client';
+
 export interface PaginationOptions {
   page?: number;
   limit?: number;
@@ -28,7 +30,9 @@ export interface ApiResponse<T> {
 export interface JwtPayload {
   id: string;
   email: string;
-  role: string;
+  role: Role;
+  type: 'access' | 'refresh';
+  jti?: string;
   iat?: number;
   exp?: number;
 }
@@ -36,5 +40,7 @@ export interface JwtPayload {
 export type RequestUser = {
   id: string;
   email: string;
-  role: string;
+  role: Role;
 };
+
+export * from './response.js';
