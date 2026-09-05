@@ -121,6 +121,15 @@ describe('AuthService', () => {
         'Invalid credentials'
       );
     });
+
+    it('should reject login for deleted users', async () => {
+      // The repository filters out soft-deleted users, so auth service sees null.
+      vi.mocked(userRepository.findByEmail).mockResolvedValue(null);
+
+      await expect(authService.login('deleted@example.com', 'password123')).rejects.toThrow(
+        'Invalid credentials'
+      );
+    });
   });
 
   describe('logout', () => {
