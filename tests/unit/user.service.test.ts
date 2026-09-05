@@ -114,4 +114,50 @@ describe('UserService', () => {
       await expect(userService.findById('user-1')).rejects.toThrow('User not found');
     });
   });
+
+  describe('delete', () => {
+    it('should delete user successfully', async () => {
+      vi.mocked(userRepository.delete).mockResolvedValue(true);
+
+      await expect(userService.delete('user-1')).resolves.toBeUndefined();
+      expect(userRepository.delete).toHaveBeenCalledWith('user-1');
+    });
+
+    it('should throw error if user not found', async () => {
+      vi.mocked(userRepository.delete).mockResolvedValue(false);
+
+      await expect(userService.delete('user-1')).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('update', () => {
+    it('should update user successfully', async () => {
+      vi.mocked(userRepository.update).mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        password: 'hashed-password',
+        firstName: 'Updated',
+        lastName: 'User',
+        phone: '+1234567890',
+        role: 'USER',
+        avatarUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+      });
+
+      const result = await userService.update('user-1', { firstName: 'Updated' });
+
+      expect(result.firstName).toBe('Updated');
+      expect(result).not.toHaveProperty('password');
+    });
+
+    it('should throw error if user not found', async () => {
+      vi.mocked(userRepository.update).mockResolvedValue(null);
+
+      await expect(userService.update('user-1', { firstName: 'Updated' })).rejects.toThrow(
+        'User not found'
+      );
+    });
+  });
 });

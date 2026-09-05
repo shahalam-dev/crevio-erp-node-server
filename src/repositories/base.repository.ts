@@ -6,7 +6,15 @@ export interface Repository<T> {
   delete(id: string): Promise<boolean>;
 }
 
-// Example using Prisma or any ORM
+/**
+ * Base repository interface. Concrete repositories may extend
+ * `SoftDeleteRepository` when their Prisma model has a `deletedAt` column.
+ *
+ * Soft-delete convention:
+ * - `findById` / `findAll` should exclude rows where `deletedAt` is not null.
+ * - `delete` should set `deletedAt` to the current timestamp.
+ * - `update` should be blocked for soft-deleted rows.
+ */
 export abstract class BaseRepository<T> implements Repository<T> {
   abstract findById(id: string): Promise<T | null>;
   abstract findAll(): Promise<T[]>;

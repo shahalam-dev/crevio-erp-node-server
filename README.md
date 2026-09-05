@@ -41,3 +41,12 @@ npx prisma migrate dev
 # Start development server
 pnpm dev
 ```
+
+## 🗑️ Soft Delete Convention
+
+Models that support soft delete must include a `deletedAt DateTime?` column in `prisma/schema.prisma` and extend `SoftDeleteRepository<T>` in their repository implementation.
+
+- `findById` / `findAll` automatically exclude rows where `deletedAt` is set.
+- `delete` performs a soft delete by setting `deletedAt` to the current timestamp.
+- `update` is blocked for soft-deleted rows.
+- Models without soft delete (e.g., one-time use tokens) should continue extending `BaseRepository<T>` directly.
