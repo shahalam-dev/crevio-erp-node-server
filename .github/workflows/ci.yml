@@ -8,6 +8,8 @@ on:
 
 env:
   DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+  JWT_ACCESS_SECRET: test-access-secret-key-at-least-32-chars
+  JWT_REFRESH_SECRET: test-refresh-secret-key-at-least-32-chars
 
 jobs:
   test:
