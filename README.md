@@ -20,6 +20,7 @@
 - Node.js 20+
 - pnpm 8+
 - PostgreSQL 16+
+- Redis 7+ (or a Redis cloud instance)
 - Docker (optional)
 
 ## 🔧 Installation
@@ -33,7 +34,7 @@ cd express-ts-app
 pnpm install
 
 # Copy environment variables
-cp .env.example .env.development
+cp .env.example .env
 
 # Run migrations
 npx prisma migrate dev
@@ -41,6 +42,42 @@ npx prisma migrate dev
 # Start development server
 pnpm dev
 ```
+
+## 📧 Email Service
+
+Emails are sent asynchronously via **BullMQ** and **Redis** using a pluggable provider architecture. The default provider uses Gmail SMTP via Nodemailer.
+
+### Running locally
+
+Run the API server and the email worker in separate terminals:
+
+```bash
+# Terminal 1: API server
+pnpm dev
+
+# Terminal 2: email worker
+pnpm worker
+```
+
+### Email verification flow
+
+1. Register an account — a verification email is queued.
+2. The email contains a link to `${FRONTEND_URL}/verify-email?token=<jwt>`.
+3. Your frontend calls `POST /api/v1/auth/verify-email` with the token.
+4. Once verified, the user can log in.
+
+### Email environment variables
+
+```env
+REDIS_URL=redis://localhost:6379
+EMAIL_FROM=noreply@example.com
+FRONTEND_URL=https://app.example.com
+EMAIL_VERIFICATION_SECRET=your-32-character-secret
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=your_app_password
+```
+
+> **Note:** Free tier Redis instances often use `volatile-lru` eviction policy, which triggers a BullMQ warning on startup. This is safe for development, but production Redis should use `noeviction`.
 
 ## 🗑️ Soft Delete Convention
 
