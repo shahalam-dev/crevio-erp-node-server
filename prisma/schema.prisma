@@ -7,17 +7,19 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  password     String
-  firstName    String         @map("first_name")
-  lastName     String         @map("last_name")
-  phone        String
-  avatarUrl    String?        @map("avatar_url")
-  role         Role           @default(USER)
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  deletedAt    DateTime?      @map("deleted_at")
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  firstName     String         @map("first_name")
+  lastName      String         @map("last_name")
+  phone         String
+  avatarUrl     String?        @map("avatar_url")
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  deletedAt     DateTime?      @map("deleted_at")
+  emailVerifyAt DateTime?      @map("email_verify_at")
+  phoneVerifyAt DateTime?      @map("phone_verify_at")
   refreshTokens RefreshToken[]
 
   @@index([email])
@@ -44,4 +46,3 @@ enum Role {
   ADMIN
   MODERATOR
 }
-
