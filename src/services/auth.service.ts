@@ -7,6 +7,7 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { CustomError } from '../exceptions/CustomError';
+import { EmailJob } from '../jobs/email.job';
 import type { SafeUser } from '../repositories/user.repository';
 import { UserRepository } from '../repositories/user.repository';
 import type { JwtPayload } from '../types/index';
@@ -31,6 +32,16 @@ export interface AuthResult {
   refreshToken: string;
 }
 
+export interface RegisterResult {
+  user: SafeUser;
+  message: string;
+}
+
+export interface VerifyEmailResult {
+  user: SafeUser;
+  message: string;
+}
+
 const SALT_ROUNDS = 12;
 
 const toSafeUser = (user: User): SafeUser => {
@@ -38,10 +49,16 @@ const toSafeUser = (user: User): SafeUser => {
   return safeUser;
 };
 
+interface EmailVerificationPayload {
+  userId: string;
+  email: string;
+  type: 'email-verification';
+}
+
 export class AuthService {
   constructor(private userRepository: UserRepository) {}
 
-  async register(input: RegisterInput): Promise<AuthResult> {
+  async register(input: RegisterInput): Promise<RegisterResult> {
     const existingUser = await this.userRepository.findByEmail(input.email);
     if (existingUser) {
       throw new CustomError('User already exists', 409);
@@ -54,11 +71,17 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    const tokens = await this.generateTokens(user);
+    const token = this.generateEmailVerificationToken(user);
+
+    await EmailJob.sendVerificationEmail({
+      to: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      token,
+    });
 
     return {
       user: toSafeUser(user),
-      ...tokens,
+      message: 'Registration successful. Please check your email to verify your account.',
     };
   }
 
@@ -73,11 +96,80 @@ export class AuthService {
       throw new CustomError('Invalid credentials', 401);
     }
 
+    if (!user.emailVerifyAt) {
+      throw new CustomError('Please verify your email before logging in', 403);
+    }
+
     const tokens = await this.generateTokens(user);
 
     return {
       user: toSafeUser(user),
       ...tokens,
+    };
+  }
+
+  async verifyEmail(token: string): Promise<VerifyEmailResult> {
+    try {
+      const payload = jwt.verify(token, env.EMAIL_VERIFICATION_SECRET) as EmailVerificationPayload;
+
+      if (payload.type !== 'email-verification') {
+        throw new CustomError('Invalid verification token', 400);
+      }
+
+      const user = await this.userRepository.findById(payload.userId);
+      if (!user) {
+        throw new CustomError('User not found', 404);
+      }
+
+      if (user.email !== payload.email) {
+        throw new CustomError('Invalid verification token', 400);
+      }
+
+      if (user.emailVerifyAt) {
+        return {
+          user: toSafeUser(user),
+          message: 'Email already verified',
+        };
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifyAt: new Date() },
+      });
+
+      return {
+        user: toSafeUser(updatedUser),
+        message: 'Email verified successfully',
+      };
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
+        throw new CustomError('Invalid or expired verification token', 400);
+      }
+      throw error;
+    }
+  }
+
+  async resendVerificationEmail(email: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findByEmail(email);
+
+    if (!user || user.emailVerifyAt) {
+      return {
+        message:
+          'If an account with this email exists and is unverified, a verification email has been sent.',
+      };
+    }
+
+    const token = this.generateEmailVerificationToken(user);
+
+    await EmailJob.sendVerificationEmail({
+      to: user.email,
+      userName: `${user.firstName} ${user.lastName}`,
+      token,
+    });
+
+    return {
+      message:
+        'If an account with this email exists and is unverified, a verification email has been sent.',
     };
   }
 
@@ -108,7 +200,6 @@ export class AuthService {
       throw new CustomError('User not found', 401);
     }
 
-    // Rotate refresh token: delete old, create new
     await prisma.refreshToken.delete({ where: { jti } });
 
     return this.generateTokens(user);
@@ -130,6 +221,18 @@ export class AuthService {
   async me(userId: string): Promise<SafeUser | null> {
     const user = await this.userRepository.findById(userId);
     return user ? toSafeUser(user) : null;
+  }
+
+  private generateEmailVerificationToken(user: User): string {
+    const payload: EmailVerificationPayload = {
+      userId: user.id,
+      email: user.email,
+      type: 'email-verification',
+    };
+
+    return jwt.sign(payload, env.EMAIL_VERIFICATION_SECRET, {
+      expiresIn: env.EMAIL_VERIFICATION_EXPIRES_IN as NonNullable<SignOptions['expiresIn']>,
+    });
   }
 
   private async generateTokens(user: User): Promise<AuthTokens> {

@@ -72,15 +72,12 @@ export class AuthController extends BaseController {
     try {
       const result = await this.authService.register(req.body);
 
-      res.cookie(ACCESS_TOKEN_COOKIE, result.accessToken, accessCookieOptions);
-      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, refreshCookieOptions);
-
       this.sendSuccess(
         req,
         res,
         {
           user: result.user,
-          accessToken: result.accessToken,
+          message: result.message,
         },
         { statusCode: 201 }
       );
@@ -99,6 +96,43 @@ export class AuthController extends BaseController {
       this.sendSuccess(req, res, {
         user: result.user,
         accessToken: result.accessToken,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token } = req.body;
+
+      if (!token || typeof token !== 'string') {
+        throw new CustomError('Verification token is required', 400);
+      }
+
+      const result = await this.authService.verifyEmail(token);
+
+      this.sendSuccess(req, res, {
+        user: result.user,
+        message: result.message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resendVerification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email } = req.body;
+
+      if (!email || typeof email !== 'string') {
+        throw new CustomError('Email is required', 400);
+      }
+
+      const result = await this.authService.resendVerificationEmail(email);
+
+      this.sendSuccess(req, res, {
+        message: result.message,
       });
     } catch (error) {
       next(error);

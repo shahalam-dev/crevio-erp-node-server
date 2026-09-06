@@ -5,7 +5,12 @@ import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validation';
 import { UserRepository } from '../../repositories/user.repository';
 import { AuthService } from '../../services/auth.service';
-import { loginSchema, registerSchema } from '../../validators/auth.validator';
+import {
+  loginSchema,
+  registerSchema,
+  resendVerificationSchema,
+  verifyEmailSchema,
+} from '../../validators/auth.validator';
 
 const router: ReturnType<typeof Router> = Router();
 
@@ -17,6 +22,12 @@ const authController = new AuthController(authService);
 // Routes
 router.post('/register', validate(registerSchema), authController.register);
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
+router.post(
+  '/resend-verification',
+  validate(resendVerificationSchema),
+  authController.resendVerification
+);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.get('/me', authenticate, authController.me);
