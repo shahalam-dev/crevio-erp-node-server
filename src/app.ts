@@ -12,6 +12,7 @@ import { requestLogger } from './middleware/logger.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { requestContext } from './middleware/requestContext.js';
 import v1Routes from './routes/v1/index.js';
+import { telegramController } from './routes/v1/telegram.routes.js';
 import { sendSuccess, sendError } from './utils/response.js';
 
 const app: Express = express();
@@ -38,6 +39,9 @@ app.use(requestContext);
 
 // Logging
 app.use(requestLogger);
+
+// Telegram webhook (must be before rate limiter)
+app.post('/webhooks/telegram', telegramController.webhook);
 
 // Rate limiting
 app.use(rateLimiter);

@@ -27,7 +27,8 @@ describe('UserService', () => {
         password: 'password123',
         firstName: 'Test',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
+        countryCode: 'US',
       };
 
       const createdAt = new Date();
@@ -46,6 +47,10 @@ describe('UserService', () => {
         createdAt,
         updatedAt,
         deletedAt: null,
+        emailVerifyAt: null,
+        phoneVerifyAt: null,
+        telegramVerifyAt: null,
+        telegramChatId: null,
       });
 
       const user = await userService.create(userData);
@@ -63,7 +68,8 @@ describe('UserService', () => {
         password: 'password123',
         firstName: 'Test',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
+        countryCode: 'US',
       };
 
       vi.mocked(userRepository.findByEmail).mockResolvedValue({
@@ -78,6 +84,10 @@ describe('UserService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
+        emailVerifyAt: null,
+        phoneVerifyAt: null,
+        telegramVerifyAt: null,
+        telegramChatId: null,
       });
 
       await expect(userService.create(userData)).rejects.toThrow('User already exists');
@@ -92,12 +102,16 @@ describe('UserService', () => {
         password: 'hashed-password',
         firstName: 'Test',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
         role: 'USER' as const,
         avatarUrl: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
+        emailVerifyAt: null,
+        phoneVerifyAt: null,
+        telegramVerifyAt: null,
+        telegramChatId: null,
       };
 
       vi.mocked(userRepository.findById).mockResolvedValue(user);
@@ -138,12 +152,16 @@ describe('UserService', () => {
         password: 'hashed-password',
         firstName: 'Updated',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
         role: 'USER',
         avatarUrl: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         deletedAt: null,
+        emailVerifyAt: null,
+        phoneVerifyAt: null,
+        telegramVerifyAt: null,
+        telegramChatId: null,
       });
 
       const result = await userService.update('user-1', { firstName: 'Updated' });

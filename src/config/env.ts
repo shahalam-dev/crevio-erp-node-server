@@ -33,6 +33,17 @@ const envSchema = z.object({
     .string()
     .min(32, 'EMAIL_VERIFICATION_SECRET must be at least 32 characters'),
   EMAIL_VERIFICATION_EXPIRES_IN: z.string().default('15m'),
+
+  // Telegram
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_BOT_USERNAME: z.string().optional(),
+  PUBLIC_API_URL: z.url().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+  TELEGRAM_LINK_TOKEN_TTL_SECONDS: z.string().default('900').transform(Number),
+  TELEGRAM_USE_POLLING: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(val => val === 'true'),
 });
 
 // Validate and export environment

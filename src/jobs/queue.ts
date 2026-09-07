@@ -1,7 +1,6 @@
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 
-import { env } from '../config/env';
+import { redis } from '../config/redis';
 
 export const EMAIL_QUEUE_NAME = 'email-queue';
 
@@ -13,12 +12,10 @@ export interface EmailJobData {
   from?: string | undefined;
 }
 
-export const redisConnection = new IORedis(env.REDIS_URL ?? 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+export const redisConnection = redis;
 
 export const emailQueue = new Queue<EmailJobData>(EMAIL_QUEUE_NAME, {
-  connection: redisConnection,
+  connection: redis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
