@@ -11,6 +11,7 @@ import { EmailJob } from '../jobs/email.job';
 import type { SafeUser } from '../repositories/user.repository';
 import { UserRepository } from '../repositories/user.repository';
 import type { JwtPayload } from '../types/index';
+import { normalizePhone } from '../utils/phone.util';
 
 export interface RegisterInput {
   email: string;
@@ -18,6 +19,7 @@ export interface RegisterInput {
   firstName: string;
   lastName: string;
   phone: string;
+  countryCode: string;
   role?: User['role'];
 }
 
@@ -45,7 +47,7 @@ export interface VerifyEmailResult {
 const SALT_ROUNDS = 12;
 
 const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, ...safeUser } = user;
+  const { password: _password, telegramChatId: _telegramChatId, ...safeUser } = user;
   return safeUser;
 };
 
@@ -65,9 +67,11 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(input.password, SALT_ROUNDS);
+    const normalizedPhone = normalizePhone(input.phone, input.countryCode);
 
     const user = await this.userRepository.create({
       ...input,
+      phone: normalizedPhone,
       password: hashedPassword,
     });
 

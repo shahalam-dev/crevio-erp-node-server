@@ -1,4 +1,5 @@
 import { Role } from '@prisma/client';
+import { isValidPhoneNumber, type CountryCode } from 'libphonenumber-js';
 import { z } from 'zod';
 
 export const loginSchema = z.object({
@@ -8,16 +9,30 @@ export const loginSchema = z.object({
   }),
 });
 
-export const registerSchema = z.object({
-  body: z.object({
-    email: z.email('Invalid email format'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    phone: z.string().min(1, 'Phone is required'),
-    role: z.nativeEnum(Role).default(Role.USER).optional(),
-  }),
-});
+const countryCodeSchema = z
+  .string()
+  .length(2, 'Country code must be 2 characters')
+  .regex(/^[A-Za-z]{2}$/, 'Country code must be a valid ISO code');
+
+export const registerSchema = z
+  .object({
+    body: z.object({
+      email: z.email('Invalid email format'),
+      password: z.string().min(8, 'Password must be at least 8 characters'),
+      firstName: z.string().min(1, 'First name is required'),
+      lastName: z.string().min(1, 'Last name is required'),
+      phone: z.string().min(1, 'Phone is required'),
+      countryCode: countryCodeSchema,
+      role: z.nativeEnum(Role).default(Role.USER).optional(),
+    }),
+  })
+  .refine(
+    data => isValidPhoneNumber(data.body.phone, data.body.countryCode.toUpperCase() as CountryCode),
+    {
+      message: 'Invalid phone number for the provided country code',
+      path: ['body', 'phone'],
+    }
+  );
 
 export const verifyEmailSchema = z.object({
   body: z.object({

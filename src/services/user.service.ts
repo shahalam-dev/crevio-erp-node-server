@@ -3,11 +3,12 @@ import bcrypt from 'bcrypt';
 
 import { CustomError } from '../exceptions/CustomError';
 import type { SafeUser, UserRepository } from '../repositories/user.repository';
+import { normalizePhone } from '../utils/phone.util';
 
 const SALT_ROUNDS = 12;
 
 const toSafeUser = (user: User): SafeUser => {
-  const { password: _password, ...safeUser } = user;
+  const { password: _password, telegramChatId: _telegramChatId, ...safeUser } = user;
   return safeUser;
 };
 
@@ -17,7 +18,13 @@ export interface CreateUserInput {
   firstName: string;
   lastName: string;
   phone: string;
+  countryCode: string;
   role?: User['role'];
+}
+
+export interface UpdateUserInput extends Partial<Omit<User, 'phone'>> {
+  phone?: string;
+  countryCode?: string;
 }
 
 export class UserService {
@@ -48,17 +55,30 @@ export class UserService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
+    const normalizedPhone = normalizePhone(data.phone, data.countryCode);
 
     const user = await this.userRepository.create({
       ...data,
+      phone: normalizedPhone,
       password: hashedPassword,
     });
 
     return toSafeUser(user);
   }
 
-  async update(id: string, data: Partial<User>): Promise<SafeUser> {
-    const user = await this.userRepository.update(id, data);
+  async update(id: string, data: UpdateUserInput): Promise<SafeUser> {
+    const { countryCode, phone, ...rest } = data;
+
+    const updateData: Partial<User> = { ...rest };
+
+    if (phone) {
+      if (!countryCode) {
+        throw new CustomError('Country code is required when updating phone', 400);
+      }
+      updateData.phone = normalizePhone(phone, countryCode);
+    }
+
+    const user = await this.userRepository.update(id, updateData);
     if (!user) {
       throw new CustomError('User not found', 404);
     }

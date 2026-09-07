@@ -37,7 +37,7 @@ describe('AuthService', () => {
     password: '$2b$12$abcdefghijklmnopqrstuvwxycdefghijklmnopqrstu',
     firstName: 'Test',
     lastName: 'User',
-    phone: '+1234567890',
+    phone: '+12025550123',
     role: 'USER' as const,
     avatarUrl: null,
     createdAt: new Date(),
@@ -45,6 +45,8 @@ describe('AuthService', () => {
     deletedAt: null,
     emailVerifyAt: null,
     phoneVerifyAt: null,
+    telegramVerifyAt: null,
+    telegramChatId: null,
   };
 
   const verifiedUser = {
@@ -74,7 +76,8 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Test',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
+        countryCode: 'US',
       };
 
       vi.mocked(userRepository.findByEmail).mockResolvedValue(null);
@@ -94,7 +97,8 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'Test',
         lastName: 'User',
-        phone: '+1234567890',
+        phone: '+12025550123',
+        countryCode: 'US',
       };
 
       vi.mocked(userRepository.findByEmail).mockResolvedValue(baseUser);

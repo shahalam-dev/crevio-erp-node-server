@@ -6,7 +6,7 @@ import { SoftDeleteRepository } from './soft-delete.repository';
 
 export type { User } from '@prisma/client';
 
-export type SafeUser = Omit<User, 'password'>;
+export type SafeUser = Omit<User, 'password' | 'telegramChatId'>;
 
 export class UserRepository extends SoftDeleteRepository<User> {
   constructor() {

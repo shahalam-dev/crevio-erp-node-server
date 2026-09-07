@@ -1,15 +1,20 @@
 import app from './app';
 import { env } from './config/env';
+import { telegramVerificationService } from './routes/v1/telegram.routes';
+import { startTelegramBot, stopTelegramBot } from './services/telegram/bot-runner';
 
 const server = app.listen(env.PORT, env.HOST, () => {
   console.log(`🚀 Server running at http://${env.HOST}:${env.PORT}`);
   console.log(`📦 Environment: ${env.NODE_ENV}`);
   console.log(`📅 Started at: ${new Date().toISOString()}`);
+
+  startTelegramBot(telegramVerificationService.handleUpdate.bind(telegramVerificationService));
 });
 
 // Graceful shutdown
 const shutdown = (signal: string) => {
   console.log(`\n🛑 Received ${signal}. Closing server...`);
+  stopTelegramBot();
   server.close(() => {
     console.log('💤 Server closed successfully');
     process.exit(0);
